@@ -1,8 +1,7 @@
 # Resque::Disable::Job
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/resque/disable/job`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This is a Resque plugin that allows us to disable jobs from being processed, by using the job class name and arguments.
+It uses some Redis data structures to keep a record of what jobs need to be disabled and how many jobs were disabled for that setting.
 
 ## Installation
 
@@ -22,7 +21,52 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Job
+You can add it to your job like any other Resque plugin:
+
+```ruby
+  class TestJob
+    extend Resque::Plugins::DisableJob
+    @queue = :test
+
+    def self.perform(some_id, other_id)
+    end
+  end
+```
+The plugin will add the `before_perform_allow_disable_job` Resque hook. This will check if the current job needs to be stopped and it calls the `disable_job_handler` method.
+By default this will just raise `Resque::Job::DontPerform`. If you want to do more you can override it in your job or base class.
+
+### Disabling a Job
+
+In your application's console you can use the `Resque::Plugins::DisableJob.disable_job` method to disable a job.
+
+`Resque::Plugins::DisableJob.disable_job(job_name, matching_arguments, ttl)`
+
+```ruby
+# Disable all the jobs of that class:
+Resque::Plugins::DisableJob.disable_job(TestJob.name)
+# Disable all TestJob jobs with the first argument `65` 
+Resque::Plugins::DisableJob.disable_job(TestJob.name, [65])
+# Disable all SampleJob jobs that have the argument a == 5
+Resque::Plugins::DisableJob.disable_job(SampleJob.name, {a: 5})
+
+# Disable a job for one hour
+Resque::Plugins::DisableJob.disable_job(SampleJob.name, {a: 1}, 3600)
+
+# Re-enable jobs:
+Resque::Plugins::DisableJob.enable_job(TestJob.name)
+Resque::Plugins::DisableJob.enable_job(TestJob.name, [65])
+```
+
+**Note**: You can disable many arguments for one job type, but for performance reasons we look at only 10 settings.
+
+### Operations
+
+`Resque::Plugins::DisableJob` comes with a a few methods that will help you keep track of actively disabled jobs and how many times the setting was matched.
+
+* `all_disabled_jobs` - returns a hash of all the disabled jobs and their settings 
+* `job_disabled_settings(job_name)` - returns a hash of all the settings for one particular job 
+* `get_disabled_stats` - returns an array of all the disabled jobs, their settings, and the counter of how many times it was matched 
 
 ## Development
 
@@ -32,7 +76,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/resque-disable-job. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/zendesk/resque-disable-job. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## License
 
@@ -40,7 +84,7 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the Resque::Disable::Job project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/resque-disable-job/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the Resque::Disable::Job project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/zendesk/resque-disable-job/blob/master/CODE_OF_CONDUCT.md).
 
 ## Copyright and license
 
