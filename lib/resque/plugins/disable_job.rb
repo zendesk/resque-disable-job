@@ -1,52 +1,20 @@
-require 'digest/sha1'
-require 'json'
+require 'resque/plugins/disable_job/settings'
 
 module Resque
   module Plugins
     module DisableJob
-      class Settings
-        SETTINGS_SET = "disabled_jobs"
-        attr_reader :name, :args
-
-        def initialize(name, args = {}, digest = "")
-          @name = name
-          if args.is_a?(Enumerable)
-            @args = args
-          else
-            @args_data = args
-          end
-          @setting_digest = digest if !digest.empty?
-        end
-
-        def main_set
-          SETTINGS_SET
-        end
-
-        def all_key
-          @all_settings_key ||= main_set + ':' + @name
-        end
-
-        def setting_key
-          @setting_key ||= all_key + ':' + digest
-        end
-
-        def build_setting_key(sha)
-          all_key + ':' + sha
-        end
-
-        def data
-          @args_data ||= @args.to_json
-        end
-
-        def digest
-          @setting_digest ||= Digest::SHA1.hexdigest(data)
-        end
-      end
       MAX_JOB_SETTINGS  = 10
       DEFAULT_TIMEOUT = 3600 # seconds
 
       def before_perform_allow_disable_job(*args)
-        !is_disabled?(self.name, args)
+        if is_disabled?(self.name, args)
+          disable_job_handler("Skipped running job #{self.name}(#{args})", args)
+        end
+      end
+
+      # Override this if you want custom processing
+      def disable_job_handler(message, *args)
+        raise Resque::Job::DontPerform.new(message)
       end
 
       def is_disabled?(name, args)
@@ -58,13 +26,13 @@ module Resque
             digest, set_args = a
             set_args_data = JSON.parse(set_args)
             specific_setting = Settings.new(name, set_args_data)
-            p "The DIGEST does not match" if specific_setting.digest != digest
+            Resque.logger.error "The DIGEST does not match" if specific_setting.digest != digest
             if !is_expired?(specific_setting)
               if (set_args_data.is_a?(Array) && args.is_a?(Array)) ||
                  (set_args_data.is_a?(Hash) && args.is_a?(Hash))
                 args_match(args, set_args_data)
               else
-                p "TYPE MISMATCH while checking disable rule #{digest} (#{set_args}) for #{name}: \
+                Resque.logger.error "TYPE MISMATCH while checking disable rule #{digest} (#{set_args}) for #{name}: \
                     args is a #{args.class} & set_args is a #{set_args_data.class}"
                 false
               end
@@ -73,27 +41,21 @@ module Resque
               false
             end
           rescue StandardError => e
-            Rails.logger.error "Failed to parse AllowDisableJob settings for #{name}: #{set_args}. Error: #{e.message}"
+            Resque.logger.error "Failed to parse AllowDisableJob settings for #{name}: #{set_args}. Error: #{e.message}"
             false
           end
         end
 
         if !matched_setting.nil?
-          digest, _ = matched_setting
-          specific_setting = Settings.new(name, {}, digest)
+          digest, args_data = matched_setting
+          specific_setting = Settings.new(name, args_data, digest)
           Resque.redis.incr specific_setting.setting_key
-          # TODO Call the handler?
-          p "DO NOT PERFORM"
-          raise Resque::Job::DontPerform.new("Skipped running job #{name}(#{args}) because it was disabled by #{matched_setting}")
+          Resque.logger.info "Matched running job #{name}(#{args}) because it was disabled by #{matched_setting}"
           true
         else
           false
         end
       end
-
-      # def disable_job_handler(*args)
-      #   raise Resque::Job::DontPerform.new("")
-      # end
 
       def self.disable_job(name, specific_args = {}, timeout = DEFAULT_TIMEOUT)
         settings = Settings.new(name, specific_args)
@@ -124,7 +86,7 @@ module Resque
               name: name,
               digest: d,
               args: a,
-              count: Resque.redis.get(Settings.new(name, {}, d).setting_key)
+              count: Resque.redis.get(Settings.new(name, a, d).setting_key)
             }
           end
         end
@@ -133,22 +95,16 @@ module Resque
 
       # private
 
-      def normalize_class_name(klass)
-        klass.name
-      end
-
       def is_expired?(setting)
         Resque.redis.ttl(setting.setting_key) < 0
       end
 
       def self.remove_specific_setting(setting)
-        # Resque.redis.multi do
-          Resque.redis.del(setting.setting_key)
-          Resque.redis.hdel(setting.all_key, setting.digest)
-          if Resque.redis.hlen(setting.all_key) == 0
-            Resque.redis.srem(setting.main_set, setting.name)
-          end
-        # end
+        Resque.redis.del(setting.setting_key)
+        Resque.redis.hdel(setting.all_key, setting.digest)
+        if Resque.redis.hlen(setting.all_key) == 0
+          Resque.redis.srem(setting.main_set, setting.name)
+        end
       end
 
       # To set the arguments to block we need to keep in mind the parameter order and that

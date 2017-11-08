@@ -1,10 +1,10 @@
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'resque/disable/job/version'
+require 'resque/disable_job/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'resque-disable-job'
-  spec.version       = Resque::Disable::Job::VERSION
+  spec.version       = Resque::DisableJob::VERSION
   spec.authors       = ['Andrei Balcanasu']
   spec.email         = ['abalcanasu@zendesk.com']
 
@@ -36,6 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest-rg'
   spec.add_development_dependency 'mocha'
   spec.add_development_dependency 'pry'
+  spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rubocop', '0.51.0'
 end
