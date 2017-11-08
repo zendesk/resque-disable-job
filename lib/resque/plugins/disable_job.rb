@@ -13,7 +13,7 @@ module Resque
       end
 
       # Override this if you want custom processing
-      def disable_job_handler(message, *args)
+      def disable_job_handler(message, *_args)
         raise Resque::Job::DontPerform.new(message)
       end
 
@@ -57,6 +57,35 @@ module Resque
         end
       end
 
+      def is_expired?(setting)
+        Resque.redis.ttl(setting.setting_key) < 0
+      end
+
+      def self.remove_specific_setting(setting)
+        Resque.redis.del(setting.setting_key)
+        Resque.redis.hdel(setting.all_key, setting.digest)
+        if Resque.redis.hlen(setting.all_key) == 0
+          Resque.redis.srem(setting.main_set, setting.name)
+        end
+      end
+
+      # To set the arguments to block we need to keep in mind the parameter order and that
+      # if we don't specify anything, that means we are blocking everything.
+      # The rule is from generic to specific.
+      def args_match(args, set_args)
+        return true if args == set_args
+        should_block = args.to_a.map.with_index do |a,i|
+          # We check each parameter (65) or parameters set (["account_id", 65]) in the args with the args to be blocked
+          # if it's nil, then we match, if it's specified, we check for equality (65 == 65 or ["account_id", 65] == ["account_id", 65])
+          set_args[i] == nil || a == set_args[i]
+        end
+        # if all params are matched [reduce(:&)]
+        should_block.reduce(:&)
+      end
+
+      #  Operations
+      # These are methods that work with the settings and inspect them
+
       def self.disable_job(name, specific_args = {}, timeout = DEFAULT_TIMEOUT)
         settings = Settings.new(name, specific_args)
         Resque.redis.multi do
@@ -83,41 +112,14 @@ module Resque
         counts = all_disabled_jobs.map do |name, settings|
           settings.map do |d,a|
             {
-              name: name,
-              digest: d,
-              args: a,
-              count: Resque.redis.get(Settings.new(name, a, d).setting_key)
+                name: name,
+                digest: d,
+                args: a,
+                count: Resque.redis.get(Settings.new(name, a, d).setting_key)
             }
           end
         end
         counts.flatten
-      end
-
-      # private
-
-      def is_expired?(setting)
-        Resque.redis.ttl(setting.setting_key) < 0
-      end
-
-      def self.remove_specific_setting(setting)
-        Resque.redis.del(setting.setting_key)
-        Resque.redis.hdel(setting.all_key, setting.digest)
-        if Resque.redis.hlen(setting.all_key) == 0
-          Resque.redis.srem(setting.main_set, setting.name)
-        end
-      end
-
-      # To set the arguments to block we need to keep in mind the parameter order and that
-      # if we don't specify anything, that means we are blocking everything.
-      # The rule is from generic to specific.
-      def args_match(args, set_args)
-        should_block = args.to_a.map.with_index do |a,i|
-          # We check each parameter (65) or parameters set (["account_id", 65]) in the args with the args to be blocked
-          # if it's nil, then we match, if it's specified, we check for equality (65 == 65 or ["account_id", 65] == ["account_id", 65])
-          set_args[i] == nil || a == set_args[i]
-        end
-        # if all params are matched [reduce(:&)]
-        should_block.reduce(:&)
       end
     end
   end

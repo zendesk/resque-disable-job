@@ -36,6 +36,16 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
     end
 
+    it 'should work with jobs with no arguments' do
+      p 'should work with jobs with no arguments'
+      worker = Resque::Worker.new(:test)
+      Resque::Plugins::DisableJob.disable_job(TestJob.name, [])
+      Resque.enqueue(TestJob)
+      TestJob.expects(:perform).never
+
+      perform_next_job(worker)
+    end
+
     it 'should re-enable correctly the job' do
       Resque.redis.keys.must_be_empty
       worker = Resque::Worker.new(:test)
@@ -113,6 +123,7 @@ describe Resque::Plugins::DisableJob do
 
     [
       # job args     ,    set args,        should match?
+      [[],                [],               true ],
       [[20,134,[134]],    [],               true ],
       [[20,134,[134]],    [20],             true ],
       [[20,134,[134]],    [20,134],         true ],
