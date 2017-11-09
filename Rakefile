@@ -1,4 +1,4 @@
-require "bundler/gem_tasks"
+require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
 
@@ -10,4 +10,4 @@ Rake::TestTask.new(:spec) do |test|
   test.warning = false
 end
 
-task :default => :spec
+task default: :spec
