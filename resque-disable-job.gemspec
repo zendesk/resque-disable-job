@@ -37,4 +37,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest-rg'
   spec.add_development_dependency 'mocha'
   spec.add_development_dependency 'pry'
+  spec.add_development_dependency 'rubocop', '0.51.0'
 end
