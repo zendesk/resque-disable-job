@@ -26,7 +26,7 @@ module Resque
             digest, set_args = a
             set_args_data = JSON.parse(set_args)
             specific_setting = Settings.new(name, set_args_data)
-            Resque.logger.error "The DIGEST does not match" if specific_setting.digest != digest
+            Resque.logger.error 'The DIGEST does not match' if specific_setting.digest != digest
             if !is_expired?(specific_setting)
               if (set_args_data.is_a?(Array) && args.is_a?(Array)) ||
                  (set_args_data.is_a?(Hash) && args.is_a?(Hash))
@@ -86,7 +86,7 @@ module Resque
       #  Operations
       # These are methods that work with the settings and inspect them
 
-      def self.disable_job(name, specific_args = {}, timeout = DEFAULT_TIMEOUT)
+      def self.disable_job(name, specific_args: {}, timeout: DEFAULT_TIMEOUT)
         settings = Settings.new(name, specific_args)
         Resque.redis.multi do
           Resque.redis.sadd settings.main_set, settings.name
@@ -96,7 +96,7 @@ module Resque
         end
       end
 
-      def self.enable_job(name, specific_args = {})
+      def self.enable_job(name, specific_args: {})
         remove_specific_setting(Settings.new(name, specific_args))
       end
 

@@ -8,14 +8,14 @@ module Resque
         SETTINGS_SET = 'disabled_jobs'
         attr_reader :name, :args
 
-        def initialize(name, args = [], digest = "")
+        def initialize(name, args = [], digest = '')
           @name = name
           if args.is_a?(Enumerable)
             @args = args
           else
             @args_data = args
           end
-          @setting_digest = digest if !digest.empty?
+          @setting_digest = digest unless digest.empty?
         end
 
         def main_set

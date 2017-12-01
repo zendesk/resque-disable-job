@@ -46,16 +46,16 @@ In your application's console you can use the `Resque::Plugins::DisableJob.disab
 # Disable all the jobs of that class:
 Resque::Plugins::DisableJob.disable_job(TestJob.name)
 # Disable all TestJob jobs with the first argument `65` 
-Resque::Plugins::DisableJob.disable_job(TestJob.name, [65])
+Resque::Plugins::DisableJob.disable_job(TestJob.name, specific_args: [65])
 # Disable all SampleJob jobs that have the argument a == 5
-Resque::Plugins::DisableJob.disable_job(SampleJob.name, {a: 5})
+Resque::Plugins::DisableJob.disable_job(SampleJob.name, specific_args: {a: 5})
 
 # Disable a job for one hour
-Resque::Plugins::DisableJob.disable_job(SampleJob.name, {a: 1}, 3600)
+Resque::Plugins::DisableJob.disable_job(SampleJob.name, specific_args: {a: 1}, timeout: 3600)
 
 # Re-enable jobs:
 Resque::Plugins::DisableJob.enable_job(TestJob.name)
-Resque::Plugins::DisableJob.enable_job(TestJob.name, [65])
+Resque::Plugins::DisableJob.enable_job(TestJob.name, specific_args: [65])
 ```
 
 **Note**: You can disable many arguments for one job type, but for performance reasons we look at only 10 settings.
