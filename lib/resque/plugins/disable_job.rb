@@ -24,23 +24,23 @@ module Resque
         raise Resque::Job::DontPerform, message
       end
 
-      def disabled?(name, args)
-        settings = Settings.new(name)
+      def disabled?(job_name, job_args)
+        settings = Settings.new(job_name)
         disabled_settings = ::Resque.redis.hgetall(settings.all_key)
         # We should limit this to 10 for performance reasons. Each check delays the job from being performed
         matched_setting = disabled_settings.take(MAX_JOB_SETTINGS).detect do |a|
           begin
             digest, set_args = a
             set_args_data = JSON.parse(set_args)
-            specific_setting = Settings.new(name, set_args_data)
+            specific_setting = Settings.new(job_name, set_args_data)
             Resque.logger.error 'The DIGEST does not match' if specific_setting.digest != digest
             if !expired?(specific_setting)
-              if (set_args_data.is_a?(Array) && args.is_a?(Array)) ||
-                  (set_args_data.is_a?(Hash) && args.is_a?(Hash))
-                args_match(args, set_args_data)
+              if (set_args_data.is_a?(Array) && job_args.is_a?(Array)) ||
+                  (set_args_data.is_a?(Hash) && job_args.is_a?(Hash))
+                args_match(job_args, set_args_data)
               else
-                Resque.logger.error "TYPE MISMATCH while checking disable rule #{digest} (#{set_args}) for #{name}: \
-                    args is a #{args.class} & set_args is a #{set_args_data.class}"
+                Resque.logger.error "TYPE MISMATCH while checking disable rule #{digest} (#{set_args}) for #{job_name}: \
+                    job_args is a #{job_args.class} & set_args is a #{set_args_data.class}"
                 false
               end
             else
@@ -48,16 +48,16 @@ module Resque
               false
             end
           rescue StandardError => e
-            Resque.logger.error "Failed to parse AllowDisableJob settings for #{name}: #{set_args}. Error: #{e.message}"
+            Resque.logger.error "Failed to parse AllowDisableJob settings for #{job_name}: #{set_args}. Error: #{e.message}"
             false
           end
         end
 
         if !matched_setting.nil?
           digest, args_data = matched_setting
-          specific_setting = Settings.new(name, args_data, digest)
+          specific_setting = Settings.new(job_name, args_data, digest)
           Resque.redis.incr specific_setting.setting_key
-          Resque.logger.info "Matched running job #{name}(#{args}) because it was disabled by #{matched_setting}"
+          Resque.logger.info "Matched running job #{job_name}(#{job_args}) because it was disabled by #{matched_setting}"
           true
         else
           false
@@ -82,7 +82,7 @@ module Resque
       def args_match(args, set_args)
         return true if args == set_args
         should_block = args.to_a.map.with_index do |a, i|
-          # We check each parameter (65) or parameters set (["account_id", 65]) in the args with the args to be blocked
+          # We check each parameter (65) or parameters set (["account_id", 65]) in the job_args with the job_args to be blocked
           # if it's nil, then we match, if it's specified, we check for equality (65 == 65 or ["account_id", 65] == ["account_id", 65])
           set_args[i].nil? || a == set_args[i]
         end
