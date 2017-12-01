@@ -1,23 +1,30 @@
+# frozen_string_literal: true
+
 require 'resque/plugins/disable_job/settings'
 
 module Resque
   module Plugins
+    # DisableJob
+    #
+    # This class handles the main logic of the DisableJob plugin.
+    # We can configure a job to be allowed to be disabled, set a job to be disabled or enable a job, and
+    # we can see the status of the currently disabled jobs.
     module DisableJob
-      MAX_JOB_SETTINGS  = 10
+      MAX_JOB_SETTINGS = 10
       DEFAULT_TIMEOUT = 3600 # seconds
 
       def before_perform_allow_disable_job(*args)
-        if is_disabled?(self.name, args)
-          disable_job_handler("Skipped running job #{self.name}(#{args})", args)
+        if disabled?(name, args)
+          disable_job_handler("Skipped running job #{name}(#{args})", args)
         end
       end
 
       # Override this if you want custom processing
       def disable_job_handler(message, *_args)
-        raise Resque::Job::DontPerform.new(message)
+        raise Resque::Job::DontPerform, message
       end
 
-      def is_disabled?(name, args)
+      def disabled?(name, args)
         settings = Settings.new(name)
         disabled_settings = ::Resque.redis.hgetall(settings.all_key)
         # We should limit this to 10 for performance reasons. Each check delays the job from being performed
@@ -27,9 +34,9 @@ module Resque
             set_args_data = JSON.parse(set_args)
             specific_setting = Settings.new(name, set_args_data)
             Resque.logger.error 'The DIGEST does not match' if specific_setting.digest != digest
-            if !is_expired?(specific_setting)
+            if !expired?(specific_setting)
               if (set_args_data.is_a?(Array) && args.is_a?(Array)) ||
-                 (set_args_data.is_a?(Hash) && args.is_a?(Hash))
+                  (set_args_data.is_a?(Hash) && args.is_a?(Hash))
                 args_match(args, set_args_data)
               else
                 Resque.logger.error "TYPE MISMATCH while checking disable rule #{digest} (#{set_args}) for #{name}: \
@@ -37,7 +44,7 @@ module Resque
                 false
               end
             else
-              self.remove_specific_setting(specific_setting)
+              remove_specific_setting(specific_setting)
               false
             end
           rescue StandardError => e
@@ -57,14 +64,14 @@ module Resque
         end
       end
 
-      def is_expired?(setting)
-        Resque.redis.ttl(setting.setting_key) < 0
+      def expired?(setting)
+        Resque.redis.ttl(setting.setting_key).negative?
       end
 
       def self.remove_specific_setting(setting)
         Resque.redis.del(setting.setting_key)
         Resque.redis.hdel(setting.all_key, setting.digest)
-        if Resque.redis.hlen(setting.all_key) == 0
+        if Resque.redis.hlen(setting.all_key).zero?
           Resque.redis.srem(setting.main_set, setting.name)
         end
       end
@@ -74,10 +81,10 @@ module Resque
       # The rule is from generic to specific.
       def args_match(args, set_args)
         return true if args == set_args
-        should_block = args.to_a.map.with_index do |a,i|
+        should_block = args.to_a.map.with_index do |a, i|
           # We check each parameter (65) or parameters set (["account_id", 65]) in the args with the args to be blocked
           # if it's nil, then we match, if it's specified, we check for equality (65 == 65 or ["account_id", 65] == ["account_id", 65])
-          set_args[i] == nil || a == set_args[i]
+          set_args[i].nil? || a == set_args[i]
         end
         # if all params are matched [reduce(:&)]
         should_block.reduce(:&)
@@ -101,21 +108,21 @@ module Resque
       end
 
       def self.all_disabled_jobs
-        Hash[Resque.redis.smembers(Settings::SETTINGS_SET).map{ |name| [name, job_disabled_settings(name)] }]
+        Hash[Resque.redis.smembers(Settings::SETTINGS_SET).map { |name| [name, job_disabled_settings(name)] }]
       end
 
       def self.job_disabled_settings(name)
         Resque.redis.hgetall(Settings.new(name).all_key)
       end
 
-      def self.get_disabled_stats
+      def self.disabled_stats
         counts = all_disabled_jobs.map do |name, settings|
-          settings.map do |d,a|
+          settings.map do |d, a|
             {
-                name: name,
-                digest: d,
-                args: a,
-                count: Resque.redis.get(Settings.new(name, a, d).setting_key)
+              name: name,
+              digest: d,
+              args: a,
+              count: Resque.redis.get(Settings.new(name, a, d).setting_key)
             }
           end
         end
