@@ -12,7 +12,19 @@ describe Resque::Plugins::DisableJob do
     extend Resque::Plugins::DisableJob
     @queue = :test
 
-    def self.perform(some_id, other_id)
+    def self.perform(_some_id, _other_id)
+    end
+  end
+
+  class TestJobHandler
+    extend Resque::Plugins::DisableJob
+    @queue = :test
+
+    def self.perform(_some_id, _other_id)
+    end
+
+    def self.disable_job_handler(message, *_args)
+      message
     end
   end
 
@@ -39,7 +51,6 @@ describe Resque::Plugins::DisableJob do
     end
 
     it 'should work with jobs with no arguments' do
-      p 'should work with jobs with no arguments'
       worker = Resque::Worker.new(:test)
       Resque::Plugins::DisableJob::Job.disable_job(TestJob.name, specific_args: [])
       Resque.enqueue(TestJob)
@@ -61,6 +72,45 @@ describe Resque::Plugins::DisableJob do
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
       Resque.redis.keys(Resque::Plugins::DisableJob::Settings::SETTINGS_SET + '*').must_be_empty
+    end
+  end
+
+  describe 'disable' do
+    it 'should block the execution' do
+      worker = Resque::Worker.new(:test)
+      TestJob.disable(specific_args: [654])
+      Resque.enqueue(TestJob, 654, 5)
+      TestJob.expects(:perform).with(654, 5).never
+
+      perform_next_job(worker)
+    end
+  end
+
+  describe 'enable' do
+    it 'should enable correctly the job' do
+      Resque.redis.keys.must_be_empty
+      worker = Resque::Worker.new(:test)
+      TestJob.disable(specific_args: [654])
+      Resque.enqueue(TestJob, 654, 5)
+      perform_next_job(worker)
+
+      TestJob.enable(specific_args: [654])
+      Resque.redis.keys(Resque::Plugins::DisableJob::Settings::SETTINGS_SET + '*').must_be_empty
+      Resque.enqueue(TestJob, 654, 5)
+      TestJob.expects(:perform).with(654, 5).once
+      perform_next_job(worker)
+      Resque.redis.keys(Resque::Plugins::DisableJob::Settings::SETTINGS_SET + '*').must_be_empty
+    end
+  end
+
+  describe 'TestJobHandler' do
+    it 'should not block the execution because the handler is not blocking' do
+      worker = Resque::Worker.new(:test)
+      TestJobHandler.disable(specific_args: [654])
+      Resque.enqueue(TestJobHandler, 654, 5)
+      TestJobHandler.expects(:perform).with(654, 5).once
+
+      perform_next_job(worker)
     end
   end
 end

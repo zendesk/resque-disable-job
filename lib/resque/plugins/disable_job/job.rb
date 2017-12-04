@@ -6,25 +6,21 @@ module Resque
       # The Job class contains the logic that determines if the current job is disabled,
       # and methods to disable and enable a specific job.
       class Job
+        # disabled? checks if the job and it's arguments is disabled
+        #
+        # It gets all the settings for the job_name
+        # for each setting, we check if it's expired. If it is, we remove the setting
+        # If it's not expired, we check that the arguments match
+        # If any of the settings match the arguments, we increment the settings' counter and we return true,
+        # otherwise we return false.
         def self.disabled?(job_name, job_args)
-          settings = Settings.new(job_name)
-          disabled_settings = ::Resque.redis.hgetall(settings.all_key)
+          disabled_settings = get_job_all_settings(job_name)
           # We should limit this to 10 for performance reasons. Each check delays the job from being performed
-          matched_setting = disabled_settings.take(MAX_JOB_SETTINGS).detect do |a|
+          matched_setting = disabled_settings.take(MAX_JOB_SETTINGS).detect do |digest, set_args|
             begin
-              digest, set_args = a
-              set_args_data = JSON.parse(set_args)
-              specific_setting = Settings.new(job_name, set_args_data)
-              Resque.logger.error 'The DIGEST does not match' if specific_setting.digest != digest
+              specific_setting = get_specific_setting(job_name, set_args, digest)
               if !expired?(specific_setting)
-                if (set_args_data.is_a?(Array) && job_args.is_a?(Array)) ||
-                    (set_args_data.is_a?(Hash) && job_args.is_a?(Hash))
-                  args_match(job_args, set_args_data)
-                else
-                  Resque.logger.error "TYPE MISMATCH while checking disable rule #{digest} (#{set_args}) for #{job_name}: \
-                          job_args is a #{job_args.class} & set_args is a #{set_args_data.class}"
-                  false
-                end
+                can_check_setting?(job_name, job_args, specific_setting) ? args_match(job_args, specific_setting.args) : false
               else
                 remove_specific_setting(specific_setting)
                 false
@@ -36,10 +32,7 @@ module Resque
           end
 
           if !matched_setting.nil?
-            digest, args_data = matched_setting
-            specific_setting = Settings.new(job_name, args_data, digest)
-            Resque.redis.incr specific_setting.setting_key
-            Resque.logger.info "Matched running job #{job_name}(#{job_args}) because it was disabled by #{matched_setting}"
+            record_matched_settings(job_args, job_name, matched_setting)
             true
           else
             false
@@ -85,6 +78,38 @@ module Resque
           # if all params are matched [reduce(:&)]
           should_block.reduce(:&)
         end
+
+        # Support functions for disabled?
+
+        def self.can_check_setting?(job_name, job_args, settings)
+          if (settings.args.is_a?(Array) && job_args.is_a?(Array)) ||
+              (settings.args.is_a?(Hash) && job_args.is_a?(Hash))
+            true
+          else
+            Resque.logger.error "TYPE MISMATCH while checking disable rule #{settings.digest} (#{settings.data}) for #{job_name}: \
+                            job_args is a #{job_args.class} & set_args is a #{settings.args.class}"
+            false
+          end
+        end
+
+        def self.get_specific_setting(job_name, set_args, digest)
+          specific_setting = Settings.new(job_name, JSON.parse(set_args))
+          Resque.logger.error 'The DIGEST does not match' if specific_setting.digest != digest
+          specific_setting
+        end
+
+        def self.get_job_all_settings(job_name)
+          ::Resque.redis.hgetall(Settings.new(job_name).all_key)
+        end
+
+        def self.record_matched_settings(job_args, job_name, matched_setting)
+          digest, args_data = matched_setting
+          specific_setting = Settings.new(job_name, args_data, digest)
+          Resque.redis.incr specific_setting.setting_key
+          Resque.logger.info "Matched running job #{job_name}(#{job_args}) because it was disabled by #{matched_setting}"
+        end
+
+        private_class_method :can_check_setting?, :record_matched_settings, :get_job_all_settings, :get_specific_setting
       end
     end
   end
