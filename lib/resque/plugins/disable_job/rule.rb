@@ -21,7 +21,7 @@ module Resque
       # * `digest` - the job's specified arguments as a digest; used to identify the job rules in the key
       class Rule
         RULES_SET = 'disabled_jobs'
-        attr_reader :job_name, :arguments
+        attr_reader :job_name
 
         def initialize(job_name, arguments = [], digest = '')
           @job_name = job_name
