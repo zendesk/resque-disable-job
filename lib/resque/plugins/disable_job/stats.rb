@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module Resque
   module Plugins
     module DisableJob
       # Stats
-      # These are methods that work with the settings and inspect them
+      # These are methods that inspect the settings
       class Stats
         def self.all_disabled_jobs
           Hash[Resque.redis.smembers(Settings::SETTINGS_SET).map { |name| [name, job_disabled_settings(name)] }]
@@ -29,4 +31,3 @@ module Resque
     end
   end
 end
-

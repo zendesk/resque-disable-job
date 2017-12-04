@@ -5,7 +5,6 @@ AllCops:
   CacheRootDirectory: tmp
 
 # Configured cops
-
 Layout/AlignParameters:
   EnforcedStyle: with_fixed_indentation
 Layout/CaseIndentation:
@@ -28,6 +27,9 @@ Style/EmptyMethod:
   EnforcedStyle: expanded
 Style/FormatString:
   EnforcedStyle: percent
+Style/ClassAndModuleChildren:
+  Exclude:
+    - 'spec/**/*'
 
 # Disabled cops
 

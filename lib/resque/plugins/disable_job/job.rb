@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 module Resque
   module Plugins
     module DisableJob
-      # Job
+      # The Job class contains the logic that determines if the current job is disabled,
+      # and methods to disable and enable a specific job.
       class Job
         def self.disabled?(job_name, job_args)
           settings = Settings.new(job_name)
@@ -61,8 +64,6 @@ module Resque
           Job.remove_specific_setting(Settings.new(name, specific_args))
         end
 
-        private
-
         def self.remove_specific_setting(setting)
           Resque.redis.del(setting.setting_key)
           Resque.redis.hdel(setting.all_key, setting.digest)
@@ -88,4 +89,3 @@ module Resque
     end
   end
 end
-
