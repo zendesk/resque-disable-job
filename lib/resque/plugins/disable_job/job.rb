@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative './rule'
+
 module Resque
   module Plugins
     module DisableJob
@@ -7,61 +9,70 @@ module Resque
       # and methods to disable and enable a specific job.
       class Job
         # disabled? checks if the job and it's arguments is disabled
-        #
-        # It gets all the settings for the job_name
-        # for each setting, we check if it's expired. If it is, we remove the setting
-        # If it's not expired, we check that the arguments match
-        # If any of the settings match the arguments, we increment the settings' counter and we return true,
-        # otherwise we return false.
         def self.disabled?(job_name, job_args)
-          disabled_settings = get_job_all_settings(job_name)
-          # We should limit this to 10 for performance reasons. Each check delays the job from being performed
-          matched_setting = disabled_settings.take(MAX_JOB_SETTINGS).detect do |digest, set_args|
+          # We get all the rules for the current job
+          rules = get_all_rules(job_name)
+          # We limit this to 10 rules for performance reasons. Each check delays the job from being performed
+          matched_rule = rules.take(MAX_JOB_RULES).detect do |digest, set_args|
             begin
-              specific_setting = get_specific_setting(job_name, set_args, digest)
-              if !expired?(specific_setting)
-                can_check_setting?(job_name, job_args, specific_setting) ? args_match(job_args, specific_setting.args) : false
+              # we get the individual rule's rule
+              specific_rule = get_specific_rule(job_name, set_args, digest)
+              # if the rule is not expired
+              if !expired?(specific_rule)
+                # if the arguments received and the ones from the rule ar of the same type, we can check for a match
+                # if they match, that means that we need to disable the current job
+                can_check_rule?(job_name, job_args, specific_rule) ? args_match(job_args, specific_rule.arguments) : false
               else
-                remove_specific_setting(specific_setting)
+                # we remove the rule if it's expired
+                remove_specific_rule(specific_rule)
                 false
               end
             rescue StandardError => e
-              Resque.logger.error "Failed to parse AllowDisableJob settings for #{job_name}: #{set_args}. Error: #{e.message}"
+              Resque.logger.error "Failed to parse AllowDisableJob rules for #{job_name}: #{set_args}. Error: #{e.message}"
               false
             end
           end
 
-          if !matched_setting.nil?
-            record_matched_settings(job_args, job_name, matched_setting)
+          if !matched_rule.nil?
+            # if we found a matched rule, we record this and return true
+            record_matched_rule(job_args, job_name, matched_rule)
             true
           else
             false
           end
         end
 
-        def self.expired?(setting)
-          Resque.redis.ttl(setting.setting_key).negative?
+        # The rule is expired if the TTL of the rule key is -1.
+        def self.expired?(rule)
+          Resque.redis.ttl(rule.rule_key).negative?
         end
 
+        # To disable a job we need to add it in 3 data structures:
+        # - we need to add the job name to the main set so we know what jobs have rules
+        # - we add the arguments to the job's rule hash
+        # - we create a counter for the individual rule that will keep track of how many times it was matched
         def self.disable_job(name, specific_args: {}, timeout: DEFAULT_TIMEOUT)
-          settings = Settings.new(name, specific_args)
+          rule = Rule.new(name, specific_args)
           Resque.redis.multi do
-            Resque.redis.sadd settings.main_set, settings.name
-            Resque.redis.hset(settings.all_key, settings.digest, settings.data)
-            Resque.redis.set(settings.setting_key, 0)
-            Resque.redis.expire(settings.setting_key, timeout)
+            Resque.redis.sadd rule.main_set, rule.job_name
+            Resque.redis.hset(rule.all_rules_key, rule.digest, rule.serialized_arguments)
+            Resque.redis.set(rule.rule_key, 0)
+            Resque.redis.expire(rule.rule_key, timeout)
           end
         end
 
+        # To enable a job, we just need to remove it
         def self.enable_job(name, specific_args: {})
-          Job.remove_specific_setting(Settings.new(name, specific_args))
+          remove_specific_rule(Rule.new(name, specific_args))
         end
 
-        def self.remove_specific_setting(setting)
-          Resque.redis.del(setting.setting_key)
-          Resque.redis.hdel(setting.all_key, setting.digest)
-          if Resque.redis.hlen(setting.all_key).zero?
-            Resque.redis.srem(setting.main_set, setting.name)
+        # To remove a job we need to delete its counter, the entry from the rules hash and
+        # if the job has no more rules, we can remove the job's entry in the main set
+        def self.remove_specific_rule(rule)
+          Resque.redis.del(rule.rule_key)
+          Resque.redis.hdel(rule.all_rules_key, rule.digest)
+          if Resque.redis.hlen(rule.all_rules_key).zero?
+            Resque.redis.srem(rule.main_set, rule.job_name)
           end
         end
 
@@ -81,35 +92,34 @@ module Resque
 
         # Support functions for disabled?
 
-        def self.can_check_setting?(job_name, job_args, settings)
-          if (settings.args.is_a?(Array) && job_args.is_a?(Array)) ||
-              (settings.args.is_a?(Hash) && job_args.is_a?(Hash))
+        def self.can_check_rule?(job_name, job_args, rule)
+          if (rule.arguments.is_a?(Array) && job_args.is_a?(Array)) || (rule.arguments.is_a?(Hash) && job_args.is_a?(Hash))
             true
           else
-            Resque.logger.error "TYPE MISMATCH while checking disable rule #{settings.digest} (#{settings.data}) for #{job_name}: \
-                            job_args is a #{job_args.class} & set_args is a #{settings.args.class}"
+            Resque.logger.error "TYPE MISMATCH while checking disable rule #{rule.digest} (#{rule.serialized_arguments}) for #{job_name}: \
+                            job_args is a #{job_args.class} & set_args is a #{rule.arguments.class}"
             false
           end
         end
 
-        def self.get_specific_setting(job_name, set_args, digest)
-          specific_setting = Settings.new(job_name, JSON.parse(set_args))
-          Resque.logger.error 'The DIGEST does not match' if specific_setting.digest != digest
-          specific_setting
+        def self.get_specific_rule(job_name, set_args, digest)
+          rule = Rule.new(job_name, set_args)
+          Resque.logger.error 'The DIGEST does not match' if rule.digest != digest
+          rule
         end
 
-        def self.get_job_all_settings(job_name)
-          ::Resque.redis.hgetall(Settings.new(job_name).all_key)
+        def self.get_all_rules(job_name)
+          ::Resque.redis.hgetall(Rule.new(job_name).all_rules_key)
         end
 
-        def self.record_matched_settings(job_args, job_name, matched_setting)
-          digest, args_data = matched_setting
-          specific_setting = Settings.new(job_name, args_data, digest)
-          Resque.redis.incr specific_setting.setting_key
-          Resque.logger.info "Matched running job #{job_name}(#{job_args}) because it was disabled by #{matched_setting}"
+        def self.record_matched_rule(job_args, job_name, matched_rule_data)
+          digest, args_data = matched_rule_data
+          rule = Rule.new(job_name, args_data, digest)
+          Resque.redis.incr rule.rule_key
+          Resque.logger.info "Matched running job #{job_name}(#{job_args}) because it was disabled by #{matched_rule_data}"
         end
 
-        private_class_method :can_check_setting?, :record_matched_settings, :get_job_all_settings, :get_specific_setting
+        private_class_method :can_check_rule?, :record_matched_rule, :get_all_rules, :get_specific_rule
       end
     end
   end

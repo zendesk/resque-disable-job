@@ -20,8 +20,8 @@ module Resque::Plugins::DisableJob
 
       it 'should work' do
         Job.disable_job('TestJob', specific_args: [654])
-        specific_setting = Settings.new('TestJob', [654])
-        Resque.redis.expects(:incr).with(specific_setting.setting_key).once
+        rule = Rule.new('TestJob', [654])
+        Resque.redis.expects(:incr).with(rule.rule_key).once
         Job.disabled?('TestJob', [654]).must_equal true
         Job.disabled?('TestJob', []).must_equal false
       end
@@ -34,12 +34,12 @@ module Resque::Plugins::DisableJob
         Job.disabled?('SimpleJob2', [654]).must_equal false
       end
 
-      it 'should return false if the setting is expired' do
+      it 'should return false if the rule is expired' do
         Job.disable_job('TestJob', specific_args: [654])
         Job.disabled?('TestJob', [654]).must_equal true
-        setting = Settings.new('TestJob', [654])
-        Resque.redis.expire(setting.setting_key, -1)
-        Job.expects(:remove_specific_setting).once
+        rule = Rule.new('TestJob', [654])
+        Resque.redis.expire(rule.rule_key, -1)
+        Job.expects(:remove_specific_rule).once
         Job.disabled?('TestJob', [654]).must_equal false
       end
 
@@ -55,7 +55,7 @@ module Resque::Plugins::DisableJob
       it 'should save data in Redis' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob', specific_args: [654])
-        Resque.redis.keys(Settings::SETTINGS_SET + '*').size.must_equal 3
+        Resque.redis.keys(Rule::RULES_SET + '*').size.must_equal 3
       end
     end
 

@@ -18,18 +18,18 @@ module Resque::Plugins::DisableJob
       end
     end
 
-    describe '#job_disabled_settings' do
+    describe '#job_disabled_rules' do
       it 'should work' do
         Job.disable_job('TestJob', specific_args: [654])
-        Stats.job_disabled_settings('TestJob').values.must_equal ['[654]']
+        Stats.job_disabled_rules('TestJob').values.must_equal ['[654]']
         Job.disable_job('TestJob', specific_args: [65])
-        Stats.job_disabled_settings('TestJob').values.must_equal %w([654] [65])
+        Stats.job_disabled_rules('TestJob').values.must_equal %w([654] [65])
         Job.enable_job('TestJob', specific_args: [654])
-        Stats.job_disabled_settings('TestJob').values.must_equal ['[65]']
+        Stats.job_disabled_rules('TestJob').values.must_equal ['[65]']
       end
     end
 
-    describe '#get_disabled_stats' do
+    describe '#disabled_stats' do
       it 'should work' do
         Job.disable_job('TestJob', specific_args: [])
         Job.disable_job('TestJob', specific_args: [654])

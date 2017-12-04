@@ -1,27 +1,29 @@
 # frozen_string_literal: true
 
+require_relative 'rule'
+
 module Resque
   module Plugins
     module DisableJob
       # Stats
-      # These are methods that inspect the settings
+      # These are methods that inspect the rules
       class Stats
         def self.all_disabled_jobs
-          Hash[Resque.redis.smembers(Settings::SETTINGS_SET).map { |name| [name, job_disabled_settings(name)] }]
+          Hash[Resque.redis.smembers(Rule::RULES_SET).map { |name| [name, job_disabled_rules(name)] }]
         end
 
-        def self.job_disabled_settings(name)
-          Resque.redis.hgetall(Settings.new(name).all_key)
+        def self.job_disabled_rules(name)
+          Resque.redis.hgetall(Rule.new(name).all_rules_key)
         end
 
         def self.disabled_stats
-          counts = all_disabled_jobs.map do |name, settings|
-            settings.map do |d, a|
+          counts = all_disabled_jobs.map do |name, rules|
+            rules.map do |digest, arguments|
               {
-                name: name,
-                digest: d,
-                args: a,
-                count: Resque.redis.get(Settings.new(name, a, d).setting_key)
+                job_name: name,
+                digest: digest,
+                arguments: arguments,
+                count: Resque.redis.get(Rule.new(name, arguments, digest).rule_key)
               }
             end
           end

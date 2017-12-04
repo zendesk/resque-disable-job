@@ -1,7 +1,7 @@
 # Resque::Disable::Job
 
 This is a Resque plugin that allows us to disable jobs from being processed, by using the job class name and arguments.
-It uses some Redis data structures to keep a record of what jobs need to be disabled and how many jobs were disabled for that setting.
+It uses some Redis data structures to keep a record of what jobs need to be disabled and how many jobs were disabled for that rule.
 
 ## Installation
 
@@ -42,7 +42,7 @@ In your application's console you can use the `Resque::Plugins::DisableJob.disab
 
 `Resque::Plugins::DisableJob.disable_job(job_name, matching_arguments, ttl = 3600)`
 
-Note: By default, each setting has a ttl of 1 hour. This is because disabling a job should be a temporary action.
+Note: By default, each rule has a ttl of 1 hour. This is because disabling a job should be a temporary action.
 
 ```ruby
 # Disable all the jobs of that class:
@@ -60,15 +60,15 @@ Resque::Plugins::DisableJob.enable_job(TestJob.name)
 Resque::Plugins::DisableJob.enable_job(TestJob.name, specific_args: [65])
 ```
 
-**Note**: You can disable many arguments for one job type, but for performance reasons we look at only 10 settings.
+**Note**: You can disable many arguments for one job type, but for performance reasons we look at only 10 rules.
 
 ### Operations
 
-`Resque::Plugins::DisableJob` comes with a a few methods that will help you keep track of actively disabled jobs and how many times the setting was matched.
+`Resque::Plugins::DisableJob::Stats` comes with a a few methods that will help you keep track of actively disabled jobs and how many times the rule was matched.
 
-* `all_disabled_jobs` - returns a hash of all the disabled jobs and their settings 
-* `job_disabled_settings(job_name)` - returns a hash of all the settings for one particular job 
-* `get_disabled_stats` - returns an array of all the disabled jobs, their settings, and the counter of how many times it was matched 
+* `all_disabled_jobs` - returns a hash of all the disabled jobs and their rules 
+* `job_disabled_rules(job_name)` - returns a hash of all the rules for one particular job 
+* `disabled_stats` - returns an array of all the disabled jobs, their rules, and the counter of how many times it was matched 
 
 ## Development
 

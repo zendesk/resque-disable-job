@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require 'resque/plugins/disable_job/settings'
+require 'resque/plugins/disable_job/job'
+require 'resque/plugins/disable_job/rule'
 
 module Resque
   module Plugins
@@ -10,7 +11,7 @@ module Resque
     # We can configure a job to be allowed to be disabled, set a job to be disabled or enable a job, and
     # we can see the status of the currently disabled jobs.
     module DisableJob
-      MAX_JOB_SETTINGS = 10
+      MAX_JOB_RULES = 10
       DEFAULT_TIMEOUT = 3600 # seconds
 
       def before_perform_allow_disable_job(*args)
