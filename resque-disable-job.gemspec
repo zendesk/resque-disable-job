@@ -10,19 +10,11 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Andrei Balcanasu']
   spec.email         = ['abalcanasu@zendesk.com']
 
-  spec.summary       = 'Write a short summary, because RubyGems requires one.'
-  spec.description   = 'Write a longer description or delete this line.'
-  spec.homepage      = 'https://github.com/zendesk'
-  spec.license       = 'MIT'
-
-  # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
-  # to allow pushing to a single host or delete this section to allow pushing to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = 'http://mygemserver.com'
-  else
-    raise 'RubyGems 2.0 or newer is required to protect against ' \
-      'public gem pushes.'
-  end
+  spec.summary       = 'Resque plugin that can disable jobs from being processed.'
+  spec.description   = 'This is a Resque plugin that allows us to disable jobs from being processed, by using the job class name and arguments.
+It uses some Redis data structures to keep a record of what jobs need to be disabled and how many jobs were disabled for that rule.'
+  spec.homepage      = 'https://github.com/zendesk/resque-disable-job'
+  spec.license       = 'Apache License 2.0'
 
   spec.files = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
