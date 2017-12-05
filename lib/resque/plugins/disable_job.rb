@@ -25,12 +25,16 @@ module Resque
         raise Resque::Job::DontPerform, message
       end
 
-      def disable(specific_args: {}, timeout: DEFAULT_TIMEOUT)
+      def disable(specific_args = [], timeout = DEFAULT_TIMEOUT)
         Job.disable_job(name, specific_args: specific_args, timeout: timeout)
       end
 
-      def enable(specific_args: {})
+      def enable(specific_args = [])
         Job.enable_job(name, specific_args: specific_args)
+      end
+
+      def enable_all
+        Job.enable_all(name)
       end
     end
   end

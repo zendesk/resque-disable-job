@@ -9,7 +9,7 @@ module Resque
       # These are methods that inspect the rules
       class Stats
         def self.all_disabled_jobs
-          Hash[Resque.redis.smembers(Rule::RULES_SET).map { |name| [name, job_disabled_rules(name)] }]
+          Hash[Job.disabled_jobs.map { |name| [name, job_disabled_rules(name)] }]
         end
 
         def self.job_disabled_rules(name)

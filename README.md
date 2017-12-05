@@ -46,18 +46,24 @@ Note: By default, each rule has a ttl of 1 hour. This is because disabling a job
 
 ```ruby
 # Disable all the jobs of that class:
-Resque::Plugins::DisableJob.disable_job(TestJob.name)
+TestJob.disable
 # Disable all TestJob jobs with the first argument `65` 
-Resque::Plugins::DisableJob.disable_job(TestJob.name, specific_args: [65])
+TestJob.disable([65])
 # Disable all SampleJob jobs that have the argument a == 5
-Resque::Plugins::DisableJob.disable_job(SampleJob.name, specific_args: {a: 5})
+SampleJob.disable({a: 5})
 
 # Disable a job for one hour
-Resque::Plugins::DisableJob.disable_job(SampleJob.name, specific_args: {a: 1}, timeout: 3600)
+SampleJob.disable({a: 1}, 3600)
 
 # Re-enable jobs:
-Resque::Plugins::DisableJob.enable_job(TestJob.name)
-Resque::Plugins::DisableJob.enable_job(TestJob.name, specific_args: [65])
+TestJob.enable()
+TestJob.enable([65])
+
+# Simple kill-switch to remove all the rules for the job
+TestJob.enable_all
+
+# Kill-switch to remove all the jobs and their rules
+Resque::Plugins::DisableJob::Job.enable_all!
 ```
 
 **Note**: You can disable many arguments for one job type, but for performance reasons we look at only 10 rules.

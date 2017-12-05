@@ -10,7 +10,7 @@ module Resque::Plugins::DisableJob
         args = [765]
         rule = Rule.new(name, args)
 
-        rule.main_set.must_equal Rule::RULES_SET
+        rule.main_set.must_equal Rule::JOBS_SET
         rule.job_name.must_equal name
         rule.arguments.must_equal args
         rule.all_rules_key.must_equal rule.main_set + ':' + name
@@ -25,7 +25,7 @@ module Resque::Plugins::DisableJob
         digest = Digest::SHA1.hexdigest(args_data)
         rule = Rule.new(name, args_data, digest)
 
-        rule.main_set.must_equal Rule::RULES_SET
+        rule.main_set.must_equal Rule::JOBS_SET
         rule.job_name.must_equal name
         rule.all_rules_key.must_equal rule.main_set + ':' + name
         rule.rule_key.must_equal rule.all_rules_key + ':' + digest
@@ -37,7 +37,7 @@ module Resque::Plugins::DisableJob
         name = 'TestJob'
         rule = Rule.new(name)
 
-        rule.main_set.must_equal Rule::RULES_SET
+        rule.main_set.must_equal Rule::JOBS_SET
         rule.job_name.must_equal name
         rule.all_rules_key.must_equal rule.main_set + ':' + name
       end

@@ -67,18 +67,27 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
 
       Resque::Plugins::DisableJob::Job.enable_job('TestJob', specific_args: [654])
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::RULES_SET + '*').must_be_empty
+      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::RULES_SET + '*').must_be_empty
+      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
     end
   end
 
   describe 'disable' do
+    it 'should work for a job with no arguments' do
+      worker = Resque::Worker.new(:test)
+      TestJob.disable
+      Resque.enqueue(TestJob)
+      TestJob.expects(:perform).never
+
+      perform_next_job(worker)
+    end
+
     it 'should block the execution' do
       worker = Resque::Worker.new(:test)
-      TestJob.disable(specific_args: [654])
+      TestJob.disable([654])
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).never
 
@@ -90,21 +99,40 @@ describe Resque::Plugins::DisableJob do
     it 'should enable correctly the job' do
       Resque.redis.keys.must_be_empty
       worker = Resque::Worker.new(:test)
-      TestJob.disable(specific_args: [654])
+      TestJob.disable([654])
       Resque.enqueue(TestJob, 654, 5)
+      TestJob.expects(:perform).with(654, 5).never
       perform_next_job(worker)
 
-      TestJob.enable(specific_args: [654])
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::RULES_SET + '*').must_be_empty
+      TestJob.enable([654])
+      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::RULES_SET + '*').must_be_empty
+      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+    end
+  end
+
+  describe 'enable_all' do
+    it 'should remove all the job\'s rules' do
+      Resque.redis.keys.must_be_empty
+      worker = Resque::Worker.new(:test)
+      TestJob.disable([654])
+      Resque.enqueue(TestJob, 654, 5)
+      TestJob.expects(:perform).with(654, 5).never
+      perform_next_job(worker)
+
+      TestJob.enable_all
+      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.enqueue(TestJob, 654, 5)
+      TestJob.expects(:perform).with(654, 5).once
+      perform_next_job(worker)
+      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
     end
   end
 
   describe 'TestJobHandler' do
-    it 'should not block the execution because the handler is not blocking' do
+    it 'should not block the execution if the handler is not blocking' do
       worker = Resque::Worker.new(:test)
       TestJobHandler.disable(specific_args: [654])
       Resque.enqueue(TestJobHandler, 654, 5)

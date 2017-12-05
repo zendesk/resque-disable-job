@@ -9,7 +9,7 @@ module Resque::Plugins::DisableJob
       RedisDbTruncater.flush
     end
 
-    describe '#is_disabled?' do
+    describe '#disabled?' do
       before do
         @job = SimpleJob.new
       end
@@ -55,7 +55,41 @@ module Resque::Plugins::DisableJob
       it 'should save data in Redis' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob', specific_args: [654])
-        Resque.redis.keys(Rule::RULES_SET + '*').size.must_equal 3
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+      end
+    end
+
+    describe '#enable_job' do
+      it 'should remove the rule' do
+        Resque.redis.keys.must_be_empty
+        Job.disable_job('TestJob', specific_args: [654])
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Job.enable_job('TestJob', specific_args: [654])
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
+      end
+    end
+
+    describe '#enable_all' do
+      it 'should remove all the job\'s rules' do
+        Resque.redis.keys.must_be_empty
+        Job.disable_job('TestJob')
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Job.disable_job('TestJob', specific_args: [654])
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 4
+        Job.enable_all('TestJob')
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
+      end
+    end
+
+    describe '#enable_all!' do
+      it 'should remove all the rules in the system' do
+        Resque.redis.keys.must_be_empty
+        Job.disable_job('TestJob')
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Job.disable_job('SampleJob', specific_args: [654])
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 5
+        Job.enable_all!
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
       end
     end
 

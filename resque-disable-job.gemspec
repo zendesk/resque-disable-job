@@ -26,7 +26,7 @@ It uses some Redis data structures to keep a record of what jobs need to be disa
   spec.add_runtime_dependency 'resque', '~> 1.25'
 
   spec.add_development_dependency 'bundler', '~> 1.16'
-  spec.add_development_dependency 'minitest', '~> 0'
+  spec.add_development_dependency 'minitest'
   spec.add_development_dependency 'minitest-rg', '~> 0'
   spec.add_development_dependency 'mocha', '~> 0'
   spec.add_development_dependency 'pry', '~> 0'
