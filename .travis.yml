@@ -6,6 +6,7 @@ branches:
   only: master
 
 rvm:
+  - 2.2.4
   - 2.2.7
   - 2.3.4
   - 2.4.2
@@ -14,7 +15,7 @@ env:
 matrix:
   include:
     - rvm: 2.4.2
-      env: COMMAND=rubocop
+      env: COMMAND="rubocop -d"
 
 services:
   - redis-server

@@ -46,7 +46,7 @@ module Resque
 
         # The rule is expired if the TTL of the rule key is -1.
         def self.expired?(rule)
-          Resque.redis.ttl(rule.rule_key).negative?
+          Resque.redis.ttl(rule.rule_key) < 0 # .negative? only works in Ruby 2.3 and above
         end
 
         # To disable a job we need to add it in 3 data structures:
