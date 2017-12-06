@@ -63,3 +63,5 @@ Style/SymbolArray:
   Enabled: false
 Style/WordArray:
   Enabled: false
+Style/MutableConstant:
+  Enabled: false
