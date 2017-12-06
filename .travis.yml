@@ -1,0 +1,24 @@
+language: ruby
+
+cache: bundler
+
+branches:
+  only: master
+
+rvm:
+  - 2.2.7
+  - 2.3.4
+  - 2.4.2
+env:
+  - COMMAND=rake
+matrix:
+  include:
+    - rvm: 2.4.2
+      env: COMMAND=rubocop
+
+services:
+  - redis-server
+
+script:
+  - bundle exec rubocop -V
+  - bundle exec $COMMAND
