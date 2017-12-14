@@ -42,9 +42,9 @@ By default this will just raise `Resque::Job::DontPerform`. If you want to do mo
 
 ### Disabling a Job
 
-In your application's console you can use the `Resque::Plugins::DisableJob.disable_job` method to disable a job.
+In your application's console you can use the `Resque::Plugins::DisableJob::Job.disable_job` method to disable a job.
 
-`Resque::Plugins::DisableJob.disable_job(job_name, matching_arguments, ttl = 3600)`
+`Resque::Plugins::DisableJob::Job.disable_job(job_name, matching_arguments, ttl = 3600)`
 
 Note: By default, each rule has a ttl of 1 hour. This is because disabling a job should be a temporary action.
 
