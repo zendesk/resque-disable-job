@@ -57,6 +57,14 @@ module Resque::Plugins::DisableJob
         Job.disable_job('TestJob', specific_args: [654])
         Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
       end
+
+      it 'should set the specified TTL in Redis' do
+        Resque.redis.keys.must_be_empty
+        Job.disable_job('TestJob', specific_args: [654], timeout: 2 * SimpleJob::DEFAULT_TIMEOUT)
+        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        rule = Rule.new('TestJob', [654])
+        (Resque.redis.ttl(rule.rule_key) > SimpleJob::DEFAULT_TIMEOUT).must_equal true
+      end
     end
 
     describe '#enable_job' do

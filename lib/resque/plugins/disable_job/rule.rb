@@ -22,6 +22,7 @@ module Resque
       class Rule
         JOBS_SET = 'disabled_jobs'
         attr_reader :job_name
+        attr_accessor :count
 
         def initialize(job_name, arguments = [], digest = '')
           @job_name = job_name

@@ -74,11 +74,12 @@ Resque::Plugins::DisableJob::Job.enable_all!
 
 ### Operations
 
-`Resque::Plugins::DisableJob::Stats` comes with a a few methods that will help you keep track of actively disabled jobs and how many times the rule was matched.
+`Resque::Plugins::DisableJob::Stats` comes with a a few methods that will help you keep track of actively disabled jobs and how many times the rule was matched. 
+They all return an `Array[Resque::Plugins::DisableJob::Rule]`.
 
-* `all_disabled_jobs` - returns a hash of all the disabled jobs and their rules 
-* `job_disabled_rules(job_name)` - returns a hash of all the rules for one particular job 
-* `disabled_stats` - returns an array of all the disabled jobs, their rules, and the counter of how many times it was matched 
+* `all_disabled_jobs` - a list of all the disabled jobs and their rules
+* `job_disabled_rules(job_name)` - a list of all the rules for one particular job 
+* `disabled_stats` - all the disabled jobs, their rules, and the counter of how many times it was matched (the `Rule` objects have the `counter` attribute set)  
 
 ## Development
 

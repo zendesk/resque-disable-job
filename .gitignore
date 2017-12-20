@@ -13,3 +13,6 @@
 Gemfile.lock
 .ruby-version
 # unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
+
+# Exclude the built gems
+*.gem
