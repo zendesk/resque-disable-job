@@ -9,25 +9,20 @@ module Resque
       # These are methods that inspect the rules
       class Stats
         def self.all_disabled_jobs
-          Hash[Job.disabled_jobs.map { |name| [name, job_disabled_rules(name)] }]
+          Job.disabled_jobs.map { |name| job_disabled_rules(name) }.flatten
         end
 
         def self.job_disabled_rules(name)
-          Resque.redis.hgetall(Rule.new(name).all_rules_key)
+          Resque.redis.hgetall(Rule.new(name).all_rules_key).each_with_object([]) do |(digest, arguments), rules|
+            rules << Rule.new(name, arguments, digest)
+          end
         end
 
         def self.disabled_stats
-          counts = all_disabled_jobs.map do |name, rules|
-            rules.map do |digest, arguments|
-              {
-                job_name: name,
-                digest: digest,
-                arguments: arguments,
-                count: Resque.redis.get(Rule.new(name, arguments, digest).rule_key)
-              }
-            end
+          all_disabled_jobs.map do |rule|
+            rule.count = Resque.redis.get(rule.rule_key).to_i
+            rule
           end
-          counts.flatten
         end
       end
     end
