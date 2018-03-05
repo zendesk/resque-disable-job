@@ -43,7 +43,7 @@ module Resque::Plugins::DisableJob
         stats.first.must_be_kind_of Rule
         stats.map(&:count).must_equal [0, 0, 0]
         # This should increment the rule counter
-        Job.disabled?(matched_job, { a: 4 })
+        Job.disabled?(matched_job, [{ a: 4 }])
         Stats.disabled_stats.select { |r| r.job_name == matched_job }.first.count.must_equal 1
       end
     end

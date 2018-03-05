@@ -42,5 +42,41 @@ module Resque::Plugins::DisableJob
         rule.all_rules_key.must_equal rule.main_set + ':' + name
       end
     end
+
+    describe '#match?' do
+      [
+        # job args,           set args,               should match?
+        [[],                  [],                      true],
+        [[{}],                [],                      true],
+        [[{}],                {},                      true],
+        [[],                  [654],                   false],
+        [[20, 134, [134]],    [],                      true],
+        [[20, 134, [134]],    [20],                    true],
+        [[20, 134, [134]],    [20, 134],               true],
+        [[20, 134, [134]],    [60, 134],               false],
+        [[20, 134, { a: 1 }], [20, 134, { a: 1 }],     true],
+        [[20, 134, [134]],    [20, 13],               false],
+        [[20, 134, [134, 4]], [21],                   false],
+        [[20, 134, [134, 4]], [21, 134, 5],           false],
+        [[20, 134, { a: 1 }], [21, 134, { a: 2 }],    false],
+        [[20, 134, { a: 1 }], [21, 134, { a: 1 }],    false],
+        [[20, 134, { a: 1 }], [21, 134, { a: 1 }, 9], false],
+        [[20, 134, [134, 4]], [134],                  false],
+        # Hash parameters
+        [[{ a: 20, b: 134 }],   {}, true],
+        [[{ a: 4 }],            { a: 4 }, true],
+        [[{ a: 20, b: 134 }],   { a: 20 },               true],
+        [[{ a: 20, b: 134 }],   { a: 21 },               false],
+        [[{ a: 20, b: 134 }],   { b: 134 },              true],
+        [[{ a: 20, b: 134 }],   { b: 134, a: 20 },       true],
+        # hash parameters with string keys
+        [[{ 'key_1' => 1, 'key_2' => 4, 'time' => 3 }],   { 'key_1' => 1 }, true],
+        [[{ 'key_1' => 1, 'key_2' => 4, 'time' => 3 }],   { 'key_1' => 2 }, false]
+      ].each do |args, set_args, match|
+        it "#{match ? 'should' : "shouldn't"} match #{set_args} set with received #{args}" do
+          Rule.new('test', set_args).match?(args).must_equal match
+        end
+      end
+    end
   end
 end
