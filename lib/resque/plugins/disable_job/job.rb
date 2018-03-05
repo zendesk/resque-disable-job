@@ -29,9 +29,8 @@ module Resque
             begin
               # if the rule is not expired
               if !expired?(specific_rule)
-                # if the arguments received and the ones from the rule ar of the same type, we can check for a match
-                # if they match, that means that we need to disable the current job
-                can_check_rule?(job_name, job_args, specific_rule) ? args_match(job_args, specific_rule.arguments) : false
+                # if the arguments received and the ones from the rule match, that means that we need to disable the current job
+                specific_rule.match?(job_args)
               else
                 # we remove the rule if it's expired
                 remove_specific_rule(specific_rule)
@@ -90,31 +89,7 @@ module Resque
           end
         end
 
-        # To set the arguments to block we need to keep in mind the parameter order and that
-        # if we don't specify anything, that means we are blocking everything.
-        # The rule is from generic to specific.
-        def self.args_match(args, set_args)
-          return true if args == set_args
-          should_block = args.to_a.map.with_index do |a, i|
-            # We check each parameter (65) or parameters set (["account_id", 65]) in the job_args with the job_args to be blocked
-            # if it's nil, then we match, if it's specified, we check for equality (65 == 65 or ["account_id", 65] == ["account_id", 65])
-            set_args[i].nil? || a == set_args[i]
-          end
-          # if all params are matched [reduce(:&)]
-          should_block.reduce(:&)
-        end
-
         # Support functions for disabled?
-
-        def self.can_check_rule?(job_name, job_args, rule)
-          if (rule.arguments.is_a?(Array) && job_args.is_a?(Array)) || (rule.arguments.is_a?(Hash) && job_args.is_a?(Hash))
-            true
-          else
-            Resque.logger.error "TYPE MISMATCH while checking disable rule #{rule.digest} (#{rule.serialized_arguments}) for #{job_name}: \
-                            job_args is a #{job_args.class} & set_args is a #{rule.arguments.class}"
-            false
-          end
-        end
 
         def self.get_specific_rule(job_name, set_args, digest)
           rule = Rule.new(job_name, set_args)
@@ -133,7 +108,7 @@ module Resque
           Resque.logger.info "Matched running job #{job_name}(#{job_args}) because it was disabled by #{rule}"
         end
 
-        private_class_method :can_check_rule?, :record_matched_rule, :get_all_rules, :get_specific_rule
+        private_class_method :record_matched_rule, :get_all_rules, :get_specific_rule
       end
     end
   end

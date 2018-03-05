@@ -57,6 +57,36 @@ module Resque
         def digest
           @rule_digest ||= Digest::SHA1.hexdigest(serialized_arguments)
         end
+
+        def match?(args)
+          job_args = normalize_job_args(args)
+          return true if job_args == arguments
+          # We check each parameter in the job_args with the rule arguments to be blocked
+          # if it's nil, then we match as we handle the 'any' case,
+          # if it's specified, we check for equality (65 == 65)
+          should_block = if arguments.is_a?(Hash)
+            job_args.map { |k, v| match_or_nil(k, v) }
+          else
+            job_args.map.with_index { |a, i| match_or_nil(i, a) }
+          end
+          # `!should_block.empty?` handles the edge case of a job with no parameters and the rule args have parameters
+          !should_block.empty? && !should_block.include?(false)
+        end
+
+        protected
+
+        def normalize_job_args(job_args)
+          # If the rule arguments is a hash we try to extract the job arguments as a hash to compare apples with apples
+          if arguments.is_a?(Hash)
+            job_args.size == 1 && job_args.first.is_a?(Hash) ? job_args.first : job_args
+          else
+            job_args
+          end
+        end
+
+        def match_or_nil(key, value)
+          arguments[key].nil? || value == arguments[key]
+        end
       end
     end
   end

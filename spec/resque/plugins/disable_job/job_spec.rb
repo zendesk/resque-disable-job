@@ -26,14 +26,6 @@ module Resque::Plugins::DisableJob
         Job.disabled?('TestJob', []).must_equal false
       end
 
-      it 'should return false if there is a args type mismatch' do
-        Resque.redis.keys.must_be_empty
-        Job.disable_job('SimpleJob', specific_args: [654])
-        Job.disabled?('SimpleJob', { a: 654 }).must_equal false
-        Job.disable_job('SimpleJob2', specific_args: { a: 654 })
-        Job.disabled?('SimpleJob2', [654]).must_equal false
-      end
-
       it 'should return false if the rule is expired' do
         Job.disable_job('TestJob', specific_args: [654])
         Job.disabled?('TestJob', [654]).must_equal true
@@ -98,42 +90,6 @@ module Resque::Plugins::DisableJob
         Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 5
         Job.enable_all!
         Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
-      end
-    end
-
-    describe '#args_match' do
-      class SimpleJob
-        include Resque::Plugins::DisableJob
-      end
-
-      before do
-        @job = SimpleJob.new
-      end
-
-      [
-        # job args,           set args,               should match?
-        [[],                  [],                      true],
-        [[20, 134, [134]],    [],                      true],
-        [[20, 134, [134]],    [20],                    true],
-        [[20, 134, [134]],    [20, 134],               true],
-        [[20, 134, { a: 1 }], [20, 134, { a: 1 }],     true],
-        [[20, 134, [134]],    [20, 13],               false],
-        [[20, 134, [134, 4]], [21],                   false],
-        [[20, 134, [134, 4]], [21, 134, 5],           false],
-        [[20, 134, { a: 1 }], [21, 134, { a: 2 }],    false],
-        [[20, 134, { a: 1 }], [21, 134, { a: 1 }],    false],
-        [[20, 134, { a: 1 }], [21, 134, { a: 1 }, 9], false],
-        [[20, 134, [134, 4]], [134],                  false],
-        # [[20],              [20,134],               false], TODO fix this case, or should we?
-        # Hash parameters
-        [{ a: 20, b: 134 },   {},                      true],
-        [{ a: 20, b: 134 },   { a: 20 },               true],
-        [{ a: 20, b: 134 },   { b: 134 },              true],
-        [{ a: 20, b: 134 },   { b: 134, a: 20 },       true]
-      ].each do |args, set_args, match|
-        it "#{match ? 'should' : "shouldn't"} match #{set_args} set with received #{args}" do
-          Job.args_match(args, set_args).must_equal match
-        end
       end
     end
   end
