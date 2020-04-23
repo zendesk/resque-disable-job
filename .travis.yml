@@ -6,15 +6,15 @@ branches:
   only: master
 
 rvm:
-  - 2.2.4
-  - 2.2.7
-  - 2.3.4
-  - 2.4.2
+  - 2.4
+  - 2.5
+  - 2.6
+  - 2.7
 env:
   - COMMAND=rake
 matrix:
   include:
-    - rvm: 2.4.2
+    - rvm: 2.4
       env: COMMAND="rubocop -d"
 
 services:
