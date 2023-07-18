@@ -1,8 +1,3 @@
 # frozen_string_literal: true
 
-source 'https://rubygems.org'
-
-git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
-
-# Specify your gem's dependencies in resque-disable-job.gemspec
-gemspec
+eval_gemfile 'gemfiles/resque_1.gemfile'
