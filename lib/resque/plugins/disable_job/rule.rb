@@ -39,15 +39,15 @@ module Resque
         end
 
         def all_rules_key
-          @all_rules_key ||= main_set + ':' + @job_name
+          @all_rules_key ||= "#{main_set}:#{@job_name}"
         end
 
         def rule_key
-          @rule_key ||= all_rules_key + ':' + digest
+          @rule_key ||= "#{all_rules_key}:#{digest}"
         end
 
         def serialized_arguments
-          @serialized_args ||= @arguments.to_json
+          @serialized_args ||= @arguments.to_json # rubocop:disable Naming/MemoizedInstanceVariableName
         end
 
         def arguments
@@ -55,12 +55,13 @@ module Resque
         end
 
         def digest
-          @rule_digest ||= Digest::SHA1.hexdigest(serialized_arguments)
+          @rule_digest ||= Digest::SHA1.hexdigest(serialized_arguments) # rubocop:disable Naming/MemoizedInstanceVariableName
         end
 
         def match?(args)
           job_args = normalize_job_args(args)
           return true if job_args == arguments
+
           # We check each parameter in the job_args with the rule arguments to be blocked
           # if it's nil, then we match as we handle the 'any' case,
           # if it's specified, we check for equality (65 == 65)

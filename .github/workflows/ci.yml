@@ -34,6 +34,16 @@ jobs:
       - name: test ${{ matrix.ruby-version }} with ${{ matrix.gemfile }}
         run: bundle exec rake spec
 
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: linter
+        run: bundle exec rake rubocop
+
   specs_successful:
     name: Specs passing?
     needs: specs
