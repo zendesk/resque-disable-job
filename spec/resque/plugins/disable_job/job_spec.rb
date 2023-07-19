@@ -47,13 +47,13 @@ module Resque::Plugins::DisableJob
       it 'should save data in Redis' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob', specific_args: [654])
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 3
       end
 
       it 'should set the specified TTL in Redis' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob', specific_args: [654], timeout: 2 * SimpleJob::DEFAULT_TIMEOUT)
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 3
         rule = Rule.new('TestJob', [654])
         (Resque.redis.ttl(rule.rule_key) > SimpleJob::DEFAULT_TIMEOUT).must_equal true
       end
@@ -63,9 +63,9 @@ module Resque::Plugins::DisableJob
       it 'should remove the rule' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob', specific_args: [654])
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 3
         Job.enable_job('TestJob', specific_args: [654])
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 0
       end
     end
 
@@ -73,11 +73,11 @@ module Resque::Plugins::DisableJob
       it 'should remove all the job\'s rules' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob')
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 3
         Job.disable_job('TestJob', specific_args: [654])
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 4
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 4
         Job.enable_all('TestJob')
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 0
       end
     end
 
@@ -85,11 +85,11 @@ module Resque::Plugins::DisableJob
       it 'should remove all the rules in the system' do
         Resque.redis.keys.must_be_empty
         Job.disable_job('TestJob')
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 3
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 3
         Job.disable_job('SampleJob', specific_args: [654])
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 5
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 5
         Job.enable_all!
-        Resque.redis.keys(Rule::JOBS_SET + '*').size.must_equal 0
+        Resque.redis.keys("#{Rule::JOBS_SET}*").size.must_equal 0
       end
     end
   end

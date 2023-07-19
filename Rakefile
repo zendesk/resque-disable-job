@@ -12,4 +12,4 @@ Rake::TestTask.new(:spec) do |test|
   test.warning = false
 end
 
-task default: :spec
+task default: %i[spec rubocop]

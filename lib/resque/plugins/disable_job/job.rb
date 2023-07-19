@@ -26,26 +26,25 @@ module Resque
 
         def self.match_rules(job_name, job_args, rules)
           rules.take(MAX_JOB_RULES).detect do |specific_rule|
-            begin
-              # if the rule is not expired
-              if !expired?(specific_rule)
-                # if the arguments received and the ones from the rule match, that means that we need to disable the current job
-                specific_rule.match?(job_args)
-              else
-                # we remove the rule if it's expired
-                remove_specific_rule(specific_rule)
-                false
-              end
-            rescue StandardError => e
-              Resque.logger.error "Failed to parse AllowDisableJob rules for #{job_name}: #{specific_rule.serialized_arguments}. Error: #{e.message}"
+            # if the rule is not expired
+            if !expired?(specific_rule)
+              # if the arguments received and the ones from the rule match,
+              # that means that we need to disable the current job
+              specific_rule.match?(job_args)
+            else
+              # we remove the rule if it's expired
+              remove_specific_rule(specific_rule)
               false
             end
+          rescue StandardError => e
+            Resque.logger.error "Failed to parse AllowDisableJob rules for #{job_name}: #{specific_rule.serialized_arguments}. Error: #{e.message}" # rubocop:disable Layout/LineLength
+            false
           end
         end
 
         # The rule is expired if the TTL of the rule key is -1.
         def self.expired?(rule)
-          Resque.redis.ttl(rule.rule_key) < 0 # .negative? only works in Ruby 2.3 and above
+          Resque.redis.ttl(rule.rule_key) < 0
         end
 
         # To disable a job we need to add it in 3 data structures:

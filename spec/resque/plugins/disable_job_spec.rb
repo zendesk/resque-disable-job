@@ -67,11 +67,11 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
 
       Resque::Plugins::DisableJob::Job.enable_job('TestJob', specific_args: [654])
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
     end
   end
 
@@ -105,11 +105,11 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
 
       TestJob.enable([654])
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
     end
   end
 
@@ -123,11 +123,11 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
 
       TestJob.enable_all
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys(Resque::Plugins::DisableJob::Rule::JOBS_SET + '*').must_be_empty
+      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
     end
   end
 

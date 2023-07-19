@@ -13,8 +13,8 @@ module Resque::Plugins::DisableJob
         rule.main_set.must_equal Rule::JOBS_SET
         rule.job_name.must_equal name
         rule.arguments.must_equal args
-        rule.all_rules_key.must_equal rule.main_set + ':' + name
-        rule.rule_key.must_equal rule.all_rules_key + ':' + rule.digest
+        rule.all_rules_key.must_equal "#{rule.main_set}:#{name}"
+        rule.rule_key.must_equal "#{rule.all_rules_key}:#{rule.digest}"
         rule.serialized_arguments.must_equal args.to_json
         rule.digest.must_equal Digest::SHA1.hexdigest(rule.serialized_arguments)
       end
@@ -27,8 +27,8 @@ module Resque::Plugins::DisableJob
 
         rule.main_set.must_equal Rule::JOBS_SET
         rule.job_name.must_equal name
-        rule.all_rules_key.must_equal rule.main_set + ':' + name
-        rule.rule_key.must_equal rule.all_rules_key + ':' + digest
+        rule.all_rules_key.must_equal "#{rule.main_set}:#{name}"
+        rule.rule_key.must_equal "#{rule.all_rules_key}:#{digest}"
         rule.serialized_arguments.must_equal args_data
         rule.digest.must_equal digest
       end
@@ -39,7 +39,7 @@ module Resque::Plugins::DisableJob
 
         rule.main_set.must_equal Rule::JOBS_SET
         rule.job_name.must_equal name
-        rule.all_rules_key.must_equal rule.main_set + ':' + name
+        rule.all_rules_key.must_equal "#{rule.main_set}:#{name}"
       end
     end
 
