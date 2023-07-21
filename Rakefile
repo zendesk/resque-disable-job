@@ -4,6 +4,9 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
 
+# Pushing to rubygems is handled by a github workflow
+ENV['gem_push'] = 'false'
+
 RuboCop::RakeTask.new
 
 Rake::TestTask.new(:spec) do |test|
