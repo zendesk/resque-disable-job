@@ -1,7 +1,6 @@
 # Resque::Disable::Job
 
 [![Build Status](https://travis-ci.org/zendesk/resque-disable-job.svg?branch=master)](https://travis-ci.org/zendesk/resque-disable-job)
-[![codecov](https://codecov.io/gh/zendesk/resque-disable-job/branch/master/graph/badge.svg)](https://codecov.io/gh/zendesk/resque-disable-job)
 
 
 This is a Resque plugin that allows us to disable jobs from being processed, by using the job class name and arguments.

@@ -4,7 +4,6 @@ source 'https://rubygems.org'
 
 gemspec path: '../'
 
-gem 'codecov'
 gem 'minitest'
 gem 'minitest-rg'
 gem 'mocha'

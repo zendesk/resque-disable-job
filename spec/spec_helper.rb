@@ -5,9 +5,6 @@ SimpleCov.start do
   add_filter '/spec/'
 end
 
-require 'codecov'
-SimpleCov.formatter = SimpleCov::Formatter::Codecov
-
 require 'bundler/setup'
 require 'resque'
 require 'resque-disable-job'
