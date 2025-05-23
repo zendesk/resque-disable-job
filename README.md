@@ -84,7 +84,22 @@ They all return an `Array[Resque::Plugins::DisableJob::Rule]`.
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+To install this gem onto your local machine, run `bundle exec rake install`.
+
+### Releasing a new version
+A new version is published to RubyGems.org every time a change to `version.rb` is pushed to the `main` branch.
+In short, follow these steps:
+1. Update `version.rb`,
+2. update version in all `Gemfile.lock` files,
+3. merge this change into `main`, and
+4. look at [the action](https://github.com/zendesk/resque-disable-job/actions/workflows/publish.yml) for output.
+
+To create a pre-release from a non-main branch:
+1. change the version in `version.rb` to something like `1.2.0.pre.1` or `2.0.0.beta.2`,
+2. push this change to your branch,
+3. go to [Actions → “Publish to RubyGems.org” on GitHub](https://github.com/zendesk/resque-disable-job/actions/workflows/publish.yml),
+4. click the “Run workflow” button,
+5. pick your branch from a dropdown.
 
 ## Contributing
 
