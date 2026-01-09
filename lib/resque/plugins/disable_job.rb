@@ -26,11 +26,11 @@ module Resque
       end
 
       def disable(specific_args = [], timeout = DEFAULT_TIMEOUT)
-        Job.disable_job(name, specific_args: specific_args, timeout: timeout)
+        Job.disable_job(name, specific_args:, timeout:)
       end
 
       def enable(specific_args = [])
-        Job.enable_job(name, specific_args: specific_args)
+        Job.enable_job(name, specific_args:)
       end
 
       def enable_all
