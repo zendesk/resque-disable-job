@@ -30,7 +30,7 @@ describe Resque::Plugins::DisableJob do
 
   describe 'integration' do
     it 'should install the before_perform hook' do
-      Resque::Plugin.before_hooks(TestJob).must_equal ['before_perform_allow_disable_job']
+      assert_equal(['before_perform_allow_disable_job'], Resque::Plugin.before_hooks(TestJob))
     end
 
     it 'should work by default' do
@@ -60,18 +60,18 @@ describe Resque::Plugins::DisableJob do
     end
 
     it 'should re-enable correctly the job' do
-      Resque.redis.keys.must_be_empty
+      assert_empty(Resque.redis.keys)
       worker = Resque::Worker.new(:test)
       Resque::Plugins::DisableJob::Job.disable_job(TestJob.name, specific_args: [654])
       Resque.enqueue(TestJob, 654, 5)
       perform_next_job(worker)
 
       Resque::Plugins::DisableJob::Job.enable_job('TestJob', specific_args: [654])
-      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
+      assert_empty(Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*"))
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
+      assert_empty(Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*"))
     end
   end
 
@@ -97,7 +97,7 @@ describe Resque::Plugins::DisableJob do
 
   describe 'enable' do
     it 'should enable correctly the job' do
-      Resque.redis.keys.must_be_empty
+      assert_empty(Resque.redis.keys)
       worker = Resque::Worker.new(:test)
       TestJob.disable([654])
       Resque.enqueue(TestJob, 654, 5)
@@ -105,17 +105,17 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
 
       TestJob.enable([654])
-      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
+      assert_empty(Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*"))
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
+      assert_empty(Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*"))
     end
   end
 
   describe 'enable_all' do
     it 'should remove all the job\'s rules' do
-      Resque.redis.keys.must_be_empty
+      assert_empty(Resque.redis.keys)
       worker = Resque::Worker.new(:test)
       TestJob.disable([654])
       Resque.enqueue(TestJob, 654, 5)
@@ -123,11 +123,11 @@ describe Resque::Plugins::DisableJob do
       perform_next_job(worker)
 
       TestJob.enable_all
-      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
+      assert_empty(Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*"))
       Resque.enqueue(TestJob, 654, 5)
       TestJob.expects(:perform).with(654, 5).once
       perform_next_job(worker)
-      Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*").must_be_empty
+      assert_empty(Resque.redis.keys("#{Resque::Plugins::DisableJob::Rule::JOBS_SET}*"))
     end
   end
 

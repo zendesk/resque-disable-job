@@ -10,13 +10,13 @@ module Resque::Plugins::DisableJob
         args = [765]
         rule = Rule.new(name, args)
 
-        rule.main_set.must_equal Rule::JOBS_SET
-        rule.job_name.must_equal name
-        rule.arguments.must_equal args
-        rule.all_rules_key.must_equal "#{rule.main_set}:#{name}"
-        rule.rule_key.must_equal "#{rule.all_rules_key}:#{rule.digest}"
-        rule.serialized_arguments.must_equal args.to_json
-        rule.digest.must_equal Digest::SHA1.hexdigest(rule.serialized_arguments)
+        assert_equal(Rule::JOBS_SET, rule.main_set)
+        assert_equal(name, rule.job_name)
+        assert_equal(args, rule.arguments)
+        assert_equal("#{rule.main_set}:#{name}", rule.all_rules_key)
+        assert_equal("#{rule.all_rules_key}:#{rule.digest}", rule.rule_key)
+        assert_equal(args.to_json, rule.serialized_arguments)
+        assert_equal(Digest::SHA1.hexdigest(rule.serialized_arguments), rule.digest)
       end
 
       it 'should initialize with name and digest' do
@@ -25,21 +25,21 @@ module Resque::Plugins::DisableJob
         digest = Digest::SHA1.hexdigest(args_data)
         rule = Rule.new(name, args_data, digest)
 
-        rule.main_set.must_equal Rule::JOBS_SET
-        rule.job_name.must_equal name
-        rule.all_rules_key.must_equal "#{rule.main_set}:#{name}"
-        rule.rule_key.must_equal "#{rule.all_rules_key}:#{digest}"
-        rule.serialized_arguments.must_equal args_data
-        rule.digest.must_equal digest
+        assert_equal(Rule::JOBS_SET, rule.main_set)
+        assert_equal(name, rule.job_name)
+        assert_equal("#{rule.main_set}:#{name}", rule.all_rules_key)
+        assert_equal("#{rule.all_rules_key}:#{digest}", rule.rule_key)
+        assert_equal(args_data, rule.serialized_arguments)
+        assert_equal(digest, rule.digest)
       end
 
       it 'should initialize with just a name' do
         name = 'TestJob'
         rule = Rule.new(name)
 
-        rule.main_set.must_equal Rule::JOBS_SET
-        rule.job_name.must_equal name
-        rule.all_rules_key.must_equal "#{rule.main_set}:#{name}"
+        assert_equal(Rule::JOBS_SET, rule.main_set)
+        assert_equal(name, rule.job_name)
+        assert_equal("#{rule.main_set}:#{name}", rule.all_rules_key)
       end
     end
 
@@ -74,7 +74,7 @@ module Resque::Plugins::DisableJob
         [[{ 'key_1' => 1, 'key_2' => 4, 'time' => 3 }],   { 'key_1' => 2 }, false]
       ].each do |args, set_args, match|
         it "#{match ? 'should' : "shouldn't"} match #{set_args} set with received #{args}" do
-          Rule.new('test', set_args).match?(args).must_equal match
+          assert_equal(match, Rule.new('test', set_args).match?(args))
         end
       end
     end
