@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 
 gemspec path: '../'
 
+gem 'logger'
 gem 'minitest'
 gem 'minitest-rg'
 gem 'mocha'

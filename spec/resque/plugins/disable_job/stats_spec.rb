@@ -12,23 +12,23 @@ module Resque::Plugins::DisableJob
     describe '#all_disabled_jobs' do
       it 'should work' do
         Job.disable_job('TestJob', specific_args: [654])
-        Stats.all_disabled_jobs.size.must_equal 1
-        Stats.all_disabled_jobs.first.must_be_kind_of Rule
-        Stats.all_disabled_jobs.first.job_name.must_equal 'TestJob'
+        assert_equal(1, Stats.all_disabled_jobs.size)
+        assert_kind_of(Rule, Stats.all_disabled_jobs.first)
+        assert_equal('TestJob', Stats.all_disabled_jobs.first.job_name)
 
         Job.disable_job('TestJob2', specific_args: [654])
-        Stats.all_disabled_jobs.map(&:job_name).sort.must_equal %w[TestJob TestJob2].sort
+        assert_equal(%w[TestJob TestJob2].sort, Stats.all_disabled_jobs.map(&:job_name).sort)
       end
     end
 
     describe '#job_disabled_rules' do
       it 'should work' do
         Job.disable_job('TestJob', specific_args: [654])
-        Stats.job_disabled_rules('TestJob').map(&:serialized_arguments).must_equal ['[654]']
+        assert_equal(['[654]'], Stats.job_disabled_rules('TestJob').map(&:serialized_arguments))
         Job.disable_job('TestJob', specific_args: [65])
-        Stats.job_disabled_rules('TestJob').map(&:serialized_arguments).sort.must_equal %w([654] [65]).sort
+        assert_equal(%w([654] [65]).sort, Stats.job_disabled_rules('TestJob').map(&:serialized_arguments).sort)
         Job.enable_job('TestJob', specific_args: [654])
-        Stats.job_disabled_rules('TestJob').map(&:serialized_arguments).must_equal ['[65]']
+        assert_equal(['[65]'], Stats.job_disabled_rules('TestJob').map(&:serialized_arguments))
       end
     end
 
@@ -39,12 +39,12 @@ module Resque::Plugins::DisableJob
         Job.disable_job('TestJob', specific_args: [654])
         Job.disable_job(matched_job, specific_args: { a: 4 })
         stats = Stats.disabled_stats
-        stats.size.must_equal 3
-        stats.first.must_be_kind_of Rule
-        stats.map(&:count).must_equal [0, 0, 0]
+        assert_equal(3, stats.size)
+        assert_kind_of(Rule, stats.first)
+        assert_equal([0, 0, 0], stats.map(&:count))
         # This should increment the rule counter
         Job.disabled?(matched_job, [{ a: 4 }])
-        Stats.disabled_stats.select { |r| r.job_name == matched_job }.first.count.must_equal 1
+        assert_equal(1, Stats.disabled_stats.select { |r| r.job_name == matched_job }.first.count)
       end
     end
   end
